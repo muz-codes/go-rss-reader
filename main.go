@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-var logger *zap.Logger
-
 func (r *RssItem) Parse(rssUrls []string) ([]RssItem, error) {
 	var allFeedItems []RssItem
 	ch := make(chan interface{})

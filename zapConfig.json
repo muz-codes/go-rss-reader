@@ -1,0 +1,12 @@
+{
+  "level": "debug",
+  "encoding": "json",
+  "outputPaths": ["stdout"],
+  "errorOutputPaths": ["stderr"],
+  "initialFields": {"appName": "go-rss-reader"},
+  "encoderConfig": {
+    "messageKey": "message",
+    "levelKey": "level",
+    "levelEncoder": "lowercase"
+  }
+}
