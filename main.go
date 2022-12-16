@@ -4,9 +4,12 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
+
+var logger *zap.Logger
 
 func (r *RssItem) Parse(rssUrls []string) ([]RssItem, error) {
 	var allFeedItems []RssItem
@@ -18,7 +21,7 @@ func (r *RssItem) Parse(rssUrls []string) ([]RssItem, error) {
 		output := <-ch
 		switch output.(type) {
 		case error:
-			fmt.Println("error in Parse", output)
+			logger.Error("error in Parse", zap.Error(output.(error)))
 		case []RssItem:
 			allFeedItems = append(allFeedItems, output.([]RssItem)...)
 		}
@@ -29,7 +32,7 @@ func (r *RssItem) Parse(rssUrls []string) ([]RssItem, error) {
 func feedReader(url string, ch chan interface{}) {
 	resp, err := callUrl(url)
 	if err != nil {
-		fmt.Println("error in Parse", err)
+		logger.Error("error in Parse", zap.Error(err))
 		ch <- err
 		return
 	}
@@ -39,7 +42,7 @@ func feedReader(url string, ch chan interface{}) {
 	decoder := xml.NewDecoder(resp.Body)
 	err = decoder.Decode(&rssXmlVar)
 	if err != nil {
-		fmt.Printf(fmt.Sprintf("error in Parse for %v", url), err)
+		logger.Error(fmt.Sprintf("error in Parse for %v", url), zap.Error(err))
 		ch <- err
 		return
 	}
@@ -63,17 +66,17 @@ func assignValuesToRssItem(item *RssItem, channel feedChannel, channelItem item)
 func callUrl(address string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", address, nil)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("error in callUrl while making request for %v", address), err)
+		logger.Error(fmt.Sprintf("error in callUrl while making request for %v", address), zap.Error(err))
 		return nil, err
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Printf(fmt.Sprintf("error in callUrl while calling the request for %v", address), err)
+		logger.Error(fmt.Sprintf("error in callUrl while calling the request for %v", address), zap.Error(err))
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errorOccurred := errors.New(fmt.Sprintf("response code is %v", resp.StatusCode))
-		fmt.Println(fmt.Sprintf("error in callUrl having non-success response for %v", address), errorOccurred)
+		logger.Error(fmt.Sprintf("error in callUrl having non-success response for %v", address), zap.Error(errorOccurred))
 		return nil, err
 	}
 	return resp, nil
@@ -84,7 +87,7 @@ func refinePubDate(pubDate string) time.Time {
 	if err != nil {
 		refinedDate, err := time.Parse("Mon, 2 Jan 2006 15:04:05 -0700", pubDate)
 		if err != nil {
-			fmt.Printf("******** error in refinePubDate", pubDate)
+			logger.Error(fmt.Sprintf("error in refinePubDate for %v", pubDate), zap.Error(err))
 		}
 		return refinedDate
 	}
